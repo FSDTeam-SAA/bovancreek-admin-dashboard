@@ -2,7 +2,7 @@
 
 import { useQuery } from "@tanstack/react-query"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Users, Car, DollarSign } from "lucide-react"
+import { Car, User, Calendar, DollarSign } from "lucide-react"
 import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts"
 import { bookingsAPI, vehiclesAPI, parentsAPI, paymentsAPI } from "@/lib/api"
 import { useSession } from "next-auth/react"
@@ -18,7 +18,6 @@ const chartData = [
 ]
 
 export default function DashboardPage() {
-
   const session = useSession()
   console.log(session)
   const { data: bookings, isLoading: bookingsLoading } = useQuery({
@@ -45,7 +44,7 @@ export default function DashboardPage() {
     {
       label: "Total Bookings",
       value: bookings?.data?.data?.length || 0,
-      icon: Users,
+      icon: Calendar,
       color: "bg-blue-500",
     },
     {
@@ -55,37 +54,39 @@ export default function DashboardPage() {
       color: "bg-green-500",
     },
     {
-      label: "Active Parents",
+      label: "Active Drivers",
       value: parents?.data?.data?.length || 0,
-      icon: Users,
+      icon: User,
       color: "bg-purple-500",
     },
     {
-      label: "Total Payments",
-      value: `$${payments?.data?.payments?.reduce((sum: number, p: any) => sum + p.amount, 0) || 0}`,
+      label: "Pending Payments",
+      value: payments?.data?.payments?.filter((p: any) => p.status === "pending").length || 0,
       icon: DollarSign,
       color: "bg-yellow-500",
     },
   ]
 
   return (
-    <div className="md:ml-64 p-6 space-y-6">
-      <h1 className="text-3xl font-bold">Dashboard</h1>
+    <div className="md:ml-64 space-y-6">
+      <div>
+        <h1 className="text-4xl font-bold text-gray-900">Dashboard</h1>
+        <p className="text-gray-600 mt-2">Welcome back to BPOOL Admin Dashboard</p>
+      </div>
 
-      {/* Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         {stats.map((stat, idx) => {
           const Icon = stat.icon
           return (
-            <Card key={idx}>
+            <Card key={idx} className="border-0 shadow-sm hover:shadow-md transition-shadow">
               <CardContent className="pt-6">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-gray-600 text-sm">{stat.label}</p>
-                    <p className="text-2xl font-bold mt-1">{stat.value}</p>
+                    <p className="text-gray-600 text-sm font-medium">{stat.label}</p>
+                    <p className="text-3xl font-bold mt-2 text-gray-900">{stat.value}</p>
                   </div>
-                  <div className={`${stat.color} p-3 rounded-lg text-white`}>
-                    <Icon size={24} />
+                  <div className={`${stat.color} p-4 rounded-lg text-white flex items-center justify-center`}>
+                    <Icon size={28} />
                   </div>
                 </div>
               </CardContent>
@@ -94,37 +95,38 @@ export default function DashboardPage() {
         })}
       </div>
 
-      {/* Charts */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <Card>
+        <Card className="border-0 shadow-sm">
           <CardHeader>
-            <CardTitle>Bookings Over Time</CardTitle>
+            <CardTitle className="text-gray-900">Bookings over time</CardTitle>
+            <p className="text-sm text-gray-600 mt-1">Last 7 Days</p>
           </CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={300}>
               <LineChart data={chartData}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="day" />
-                <YAxis />
-                <Tooltip />
-                <Line type="monotone" dataKey="bookings" stroke="#3b82f6" />
+                <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                <XAxis dataKey="day" stroke="#999" />
+                <YAxis stroke="#999" />
+                <Tooltip contentStyle={{ backgroundColor: "#fff", border: "1px solid #e0e0e0", borderRadius: "8px" }} />
+                <Line type="monotone" dataKey="bookings" stroke="#6b7fdb" strokeWidth={2} dot={{ fill: "#6b7fdb" }} />
               </LineChart>
             </ResponsiveContainer>
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="border-0 shadow-sm">
           <CardHeader>
-            <CardTitle>Revenue Over Time</CardTitle>
+            <CardTitle className="text-gray-900">Revenue over Time</CardTitle>
+            <p className="text-sm text-gray-600 mt-1">Last 7 Days</p>
           </CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={300}>
               <BarChart data={chartData}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="day" />
-                <YAxis />
-                <Tooltip />
-                <Bar dataKey="revenue" fill="#10b981" />
+                <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                <XAxis dataKey="day" stroke="#999" />
+                <YAxis stroke="#999" />
+                <Tooltip contentStyle={{ backgroundColor: "#fff", border: "1px solid #e0e0e0", borderRadius: "8px" }} />
+                <Bar dataKey="revenue" fill="#d084c1" radius={[8, 8, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </CardContent>

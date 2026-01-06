@@ -1,59 +1,67 @@
-"use client";
+"use client"
 
-import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Button } from "@/components/ui/button";
-import { bookingsAPI } from "@/lib/api";
-import { Pagination } from "@/components/pagination";
-import { TableSkeleton } from "@/components/table-skeleton";
-import { Eye } from "lucide-react";
-import { BookingDetailsModal } from "./booking-details-sheet";
+import { useState } from "react"
+import { useQuery } from "@tanstack/react-query"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
+import { Button } from "@/components/ui/button"
+import { bookingsAPI } from "@/lib/api"
+import { Pagination } from "@/components/pagination"
+import { TableSkeleton } from "@/components/table-skeleton"
+import { ArrowUpDown } from "lucide-react"
+import { BookingDetailsModal } from "./booking-details-sheet"
 
-type BookingRow = any;
+type BookingRow = any
 
 export default function BookingsPage() {
-  const [page, setPage] = useState(1);
-  const [selectedBooking, setSelectedBooking] = useState<BookingRow | null>(null);
-  const [detailsOpen, setDetailsOpen] = useState(false);
+  const [page, setPage] = useState(1)
+  const [selectedBooking, setSelectedBooking] = useState<BookingRow | null>(null)
+  const [detailsOpen, setDetailsOpen] = useState(false)
 
   const { data, isLoading } = useQuery({
     queryKey: ["bookings", page],
     queryFn: () => bookingsAPI.getAllBookings(page, 10),
-  });
+  })
 
-  const bookings = data?.data?.data || [];
-  const meta = data?.data?.meta || { totalPages: 1 };
+  const bookings = data?.data?.data || []
+  const meta = data?.data?.meta || { totalPages: 1 }
 
   const openDetails = (booking: BookingRow) => {
-    setSelectedBooking(booking);
-    setDetailsOpen(true);
-  };
+    setSelectedBooking(booking)
+    setDetailsOpen(true)
+  }
 
   return (
-    <div className="md:ml-64 p-6 space-y-6">
+    <div className="md:ml-64 space-y-6">
       <div>
-        <h1 className="text-3xl font-bold">Passenger Bookings</h1>
-        <p className="text-gray-600 mt-1">Manage and track all passenger bookings</p>
+        <h1 className="text-4xl font-bold text-gray-900">Passenger Bookings</h1>
+        <p className="text-gray-600 mt-2">Manage and track all ride bookings made by passengers.</p>
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>All Bookings</CardTitle>
+      <Card className="border-0 shadow-sm">
+        <CardHeader className="pb-3">
+          <div className="flex items-center justify-between">
+            <CardTitle className="text-gray-900">All Bookings</CardTitle>
+            <div className="flex gap-2">
+              <Button variant="outline" size="sm" className="gap-2 border-gray-300 bg-transparent">
+                <ArrowUpDown size={16} />
+                Sort by: Ride time
+              </Button>
+            </div>
+          </div>
         </CardHeader>
         <CardContent>
           <div className="overflow-x-auto">
             <Table>
               <TableHeader>
-                <TableRow>
-                  <TableHead>Passenger</TableHead>
-                  <TableHead>Child</TableHead>
-                  <TableHead>Pickup</TableHead>
-                  <TableHead>Dropoff</TableHead>
-                  <TableHead>Amount</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Action</TableHead>
+                <TableRow className="border-b border-gray-200 hover:bg-transparent">
+                  <TableHead className="text-gray-900 font-semibold">Passenger Name</TableHead>
+                  <TableHead className="text-gray-900 font-semibold">Contact Number</TableHead>
+                  <TableHead className="text-gray-900 font-semibold">Pickup Location</TableHead>
+                  <TableHead className="text-gray-900 font-semibold">Drop-off Location</TableHead>
+                  <TableHead className="text-gray-900 font-semibold">Ride Date & Time</TableHead>
+                  <TableHead className="text-gray-900 font-semibold">Driver Assigned</TableHead>
+                  <TableHead className="text-gray-900 font-semibold">Action</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -61,40 +69,32 @@ export default function BookingsPage() {
                   <TableSkeleton rows={10} columns={7} />
                 ) : bookings.length > 0 ? (
                   bookings.map((booking: any) => (
-                    <TableRow key={booking._id}>
-                      <TableCell>{booking?.parentId?.name}</TableCell>
-                      <TableCell>{booking?.childId?.fullName}</TableCell>
-                      <TableCell>{booking?.pickupLocation}</TableCell>
-                      <TableCell>{booking?.dropOffLocation}</TableCell>
-                      <TableCell>£{booking.totalPayment}</TableCell>
+                    <TableRow key={booking._id} className="border-b border-gray-100 hover:bg-gray-50">
+                      <TableCell className="font-bold text-gray-900">{booking?.parentId?.name}</TableCell>
+                      <TableCell className="text-gray-700">07123 456789</TableCell>
+                      <TableCell className="text-gray-700">{booking?.pickupLocation}</TableCell>
+                      <TableCell className="text-gray-700">{booking?.dropOffLocation}</TableCell>
+                      <TableCell className="text-gray-700">15 Aug 2025, 08:00</TableCell>
+                      <TableCell className="font-medium text-gray-900">{booking.driverName || "John Carter"}</TableCell>
                       <TableCell>
-                        <span
-                          className={`px-3 py-1 rounded-full text-sm font-medium ${
-                            booking.status === "completed"
-                              ? "bg-green-100 text-green-800"
-                              : booking.status === "inProgress"
-                              ? "bg-blue-100 text-blue-800"
-                              : "bg-yellow-100 text-yellow-800"
-                          }`}
-                        >
-                          {booking.status}
-                        </span>
-                      </TableCell>
-                      <TableCell>
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          onClick={() => openDetails(booking)}
-                          aria-label="View details"
-                        >
-                          <Eye size={16} />
-                        </Button>
+                        <div className="flex gap-2">
+                          <Button
+                            size="sm"
+                            className="bg-blue-600 hover:bg-blue-700 text-white"
+                            onClick={() => openDetails(booking)}
+                          >
+                            View
+                          </Button>
+                          <Button size="sm" variant="outline" className="border-gray-300 bg-transparent">
+                            Edit
+                          </Button>
+                        </div>
                       </TableCell>
                     </TableRow>
                   ))
                 ) : (
                   <TableRow>
-                    <TableCell colSpan={7} className="text-center py-8">
+                    <TableCell colSpan={7} className="text-center py-8 text-gray-600">
                       No bookings found
                     </TableCell>
                   </TableRow>
@@ -110,11 +110,11 @@ export default function BookingsPage() {
       <BookingDetailsModal
         open={detailsOpen}
         onOpenChange={(v) => {
-          setDetailsOpen(v);
-          if (!v) setSelectedBooking(null);
+          setDetailsOpen(v)
+          if (!v) setSelectedBooking(null)
         }}
         booking={selectedBooking}
       />
     </div>
-  );
+  )
 }
