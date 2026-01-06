@@ -1,64 +1,95 @@
-"use client";
+"use client"
 
-import type React from "react";
-import Link from "next/link";
-import Image from "next/image";
-import { useState } from "react";
-import { useRouter } from "next/navigation";
-import { signIn } from "next-auth/react";
-import { toast } from "sonner";
+import type React from "react"
+import Link from "next/link"
+import Image from "next/image"
+import { Suspense, useEffect, useState } from "react"
+import { useRouter, useSearchParams } from "next/navigation"
+import { signIn } from "next-auth/react"
+import { toast } from "sonner"
 
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
 import {
   Card,
   CardHeader,
   CardTitle,
   CardDescription,
   CardContent,
-} from "@/components/ui/card";
-import { Eye, EyeOff, Loader2 } from "lucide-react";
+} from "@/components/ui/card"
+import { Eye, EyeOff, Loader2 } from "lucide-react"
+
+function LoginErrorToast() {
+  const router = useRouter()
+  const searchParams = useSearchParams()
+
+  useEffect(() => {
+    const err = searchParams.get("error")
+    if (!err) return
+
+    if (err === "not_admin") toast.error("Access denied: Admins only.")
+    else if (err === "unauthorized") toast.error("Please sign in to continue.")
+    else toast.error("Please sign in.")
+
+    // remove query so it doesn't toast again on refresh
+    router.replace("/auth/login")
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  return null
+}
 
 export default function LoginPage() {
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
-  const [showPassword, setShowPassword] = useState(false);
-  const router = useRouter();
+  const [email, setEmail] = useState("")
+  const [password, setPassword] = useState("")
+  const [isLoading, setIsLoading] = useState(false)
+  const [showPassword, setShowPassword] = useState(false)
+
+  const router = useRouter()
 
   const handleLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
+    e.preventDefault()
+
     if (!email || !password) {
-      toast.error("Please enter your email and password");
-      return;
+      toast.error("Please enter your email and password")
+      return
     }
 
-    setIsLoading(true);
+    setIsLoading(true)
     try {
       const result = await signIn("credentials", {
         email,
         password,
         redirect: false,
-      });
+      })
 
       if (result?.error) {
-        toast.error(result.error || "Login failed");
-      } else if (result?.ok) {
-        toast.success("Login successful");
-        router.push("/dashboard");
-      } else {
-        toast.error("Unexpected response. Please try again.");
+        toast.error(result.error || "Login failed")
+        return
       }
-    } catch (error) {
-      toast.error("An error occurred during login");
+
+      if (result?.ok) {
+        toast.success("Login successful")
+        router.push("/dashboard")
+        return
+      }
+
+      toast.error("Unexpected response. Please try again.")
+    } catch {
+      toast.error("An error occurred during login")
     } finally {
-      setIsLoading(false);
+      setIsLoading(false)
     }
-  };
+  }
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-[#FAF5F9] p-4">
-      <Card className="w-full max-w-md shadow-lg border-0"> 
+      {/* ✅ Suspense wrapper required for useSearchParams */}
+      <Suspense fallback={null}>
+        <LoginErrorToast />
+      </Suspense>
+
+      <Card className="w-full max-w-md shadow-lg border-0">
         <CardHeader className="items-center">
           <div className="flex items-center justify-center">
             <Image
@@ -73,6 +104,7 @@ export default function LoginPage() {
           <CardTitle className="sr-only">Sign in</CardTitle>
           <CardDescription>Sign in to your account</CardDescription>
         </CardHeader>
+
         <CardContent>
           <form onSubmit={handleLogin} className="space-y-5">
             <div>
@@ -92,9 +124,13 @@ export default function LoginPage() {
             </div>
 
             <div>
-              <label htmlFor="password" className="block text-sm font-medium mb-2">
+              <label
+                htmlFor="password"
+                className="block text-sm font-medium mb-2"
+              >
                 Password
               </label>
+
               <div className="relative">
                 <Input
                   id="password"
@@ -107,11 +143,12 @@ export default function LoginPage() {
                   required
                   className="pr-10"
                 />
+
                 <button
                   type="button"
                   aria-label={showPassword ? "Hide password" : "Show password"}
                   onClick={() => setShowPassword((s) => !s)}
-                  onMouseDown={(e) => e.preventDefault()} // keep focus in the input
+                  onMouseDown={(e) => e.preventDefault()}
                   className="absolute inset-y-0 right-2 flex items-center justify-center p-2 rounded-md hover:bg-muted focus:outline-none focus:ring-2 focus:ring-ring"
                 >
                   {showPassword ? (
@@ -150,5 +187,5 @@ export default function LoginPage() {
         </CardContent>
       </Card>
     </div>
-  );
+  )
 }

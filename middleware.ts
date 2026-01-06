@@ -1,23 +1,35 @@
 import { NextResponse } from "next/server"
 import type { NextRequest } from "next/server"
+import { getToken } from "next-auth/jwt"
 
-export function middleware(request: NextRequest) {
-  const pathname = request.nextUrl.pathname
+export async function middleware(request: NextRequest) {
+  const { pathname } = request.nextUrl
 
-  // This avoids Edge Runtime incompatibility issues with OpenID Client
-  const sessionCookie =
-    request.cookies.get("next-auth.session-token")?.value ||
-    request.cookies.get("__Secure-next-auth.session-token")?.value
+  const token = await getToken({
+    req: request,
+    secret: process.env.NEXTAUTH_SECRET,
+  })
 
-  // Protect admin routes
-  // if (pathname.startsWith("/") || pathname.startsWith("/dashboard")) {
-  //   if (!sessionCookie) {
-  //     return NextResponse.redirect(new URL("/auth/login", request.url))
-  //   }
-  // }
+  const isAuth = !!token
+  const isAdmin = token?.role === "admin"
 
-  // Redirect authenticated users away from auth pages
-  if (pathname.startsWith("/auth/") && sessionCookie) {
+  // Protect dashboard
+  if (pathname.startsWith("/dashboard")) {
+    if (!isAuth) {
+      const url = new URL("/auth/login", request.url)
+      url.searchParams.set("error", "unauthorized")
+      return NextResponse.redirect(url)
+    }
+
+    if (!isAdmin) {
+      const url = new URL("/auth/login", request.url)
+      url.searchParams.set("error", "not_admin")
+      return NextResponse.redirect(url)
+    }
+  }
+
+  // Redirect logged-in admins away from auth pages
+  if (pathname.startsWith("/auth/") && isAuth && isAdmin) {
     return NextResponse.redirect(new URL("/dashboard", request.url))
   }
 
@@ -25,5 +37,5 @@ export function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/:path*", "/dashboard/:path*", "/auth/:path*"],
+  matcher: ["/dashboard/:path*", "/auth/:path*"],
 }

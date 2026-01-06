@@ -1,8 +1,8 @@
-import NextAuth from "next-auth";
-import Credentials from "next-auth/providers/credentials";
-import apiClient from "@/lib/api-client";
+import NextAuth from "next-auth"
+import Credentials from "next-auth/providers/credentials"
+import apiClient from "@/lib/api-client"
 
-const authOptions = {
+export const authOptions = {
   providers: [
     Credentials({
       name: "Credentials",
@@ -11,71 +11,78 @@ const authOptions = {
         password: { label: "Password", type: "password" },
       },
       async authorize(credentials) {
-        if (!credentials?.email || !credentials?.password) return null;
+        if (!credentials?.email || !credentials?.password) {
+          throw new Error("Email and password are required")
+        }
 
         try {
           const response = await apiClient.post("/users/login", {
             email: credentials.email,
             password: credentials.password,
-          });
+          })
 
-          const { data } = response.data;
+          const { data } = response.data
 
-          console.log(data)
-
-          if (data?.accessToken) {
-            return {
-              id: data._id,
-              email: data.email,
-              role: data.role,
-              accessToken: data.accessToken,
-              refreshToken: data.refreshToken,
-            };
+          // ✅ Must have token
+          if (!data?.accessToken) {
+            throw new Error("Invalid login response")
           }
-        } catch (error) {
-          console.error("Auth error:", error);
-          return null;
-        }
 
-        return null;
+          // ✅ Admin-only gate here (BEST place)
+          if (data.role !== "admin") {
+            throw new Error("Access denied: Admins only.")
+          }
+
+          return {
+            id: data._id,
+            email: data.email,
+            role: data.role,
+            accessToken: data.accessToken,
+            refreshToken: data.refreshToken,
+          }
+        } catch (err: any) {
+          // ✅ Make sure we always throw a readable message for signIn() -> result.error
+          const msg =
+            err?.response?.data?.message ||
+            err?.message ||
+            "Invalid email or password"
+          throw new Error(msg)
+        }
       },
     }),
   ],
+
   callbacks: {
-    async jwt({ token, user }) {
+    async jwt({ token, user }: any) {
       if (user) {
-        token.accessToken = user.accessToken;
-        token.refreshToken = user.refreshToken;
-        token.role = user.role;
-        token.id = user.id;
+        token.accessToken = user.accessToken
+        token.refreshToken = user.refreshToken
+        token.role = user.role
+        token.id = user.id
       }
-      return token;
+      return token
     },
-    async session({ session, token }) {
+
+    async session({ session, token }: any) {
       if (session.user) {
-        session.user.id = token.id as string;
-        session.user.role = token.role as string;
-        // @ts-ignore - custom props on session
-        session.accessToken = token.accessToken as string;
-        // @ts-ignore
-        session.refreshToken = token.refreshToken as string;
+        session.user.id = token.id as string
+        session.user.role = token.role as string
+        // custom fields
+        session.accessToken = token.accessToken as string
+        session.refreshToken = token.refreshToken as string
       }
-      return session;
+      return session
     },
   },
+
   pages: {
     signIn: "/auth/login",
   },
+
   session: { strategy: "jwt" },
   secret: process.env.NEXTAUTH_SECRET,
-};
+}
 
-// ✅ Return a single handler function
-const handler = NextAuth(authOptions);
+const handler = NextAuth(authOptions)
 
-// Export for route handlers (no destructuring of handlers)
-export { handler as GET, handler as POST };
-
-// Optional: if you also need auth()/signIn()/signOut() helpers (v5 only),
-// you can create a separate `src/auth.ts` that calls NextAuth again and exports those.
-// (Keep the route using the handler pattern to stay compatible.)
+export { handler as GET, handler as POST }

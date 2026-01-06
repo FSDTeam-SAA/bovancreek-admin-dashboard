@@ -62,10 +62,10 @@ export default function BookingsPage() {
                 ) : bookings.length > 0 ? (
                   bookings.map((booking: any) => (
                     <TableRow key={booking._id}>
-                      <TableCell>{booking.parentId.name}</TableCell>
-                      <TableCell>{booking.childId.fullName}</TableCell>
-                      <TableCell>{booking.pickupLocation}</TableCell>
-                      <TableCell>{booking.dropOffLocation}</TableCell>
+                      <TableCell>{booking?.parentId?.name}</TableCell>
+                      <TableCell>{booking?.childId?.fullName}</TableCell>
+                      <TableCell>{booking?.pickupLocation}</TableCell>
+                      <TableCell>{booking?.dropOffLocation}</TableCell>
                       <TableCell>£{booking.totalPayment}</TableCell>
                       <TableCell>
                         <span
