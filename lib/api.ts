@@ -25,7 +25,7 @@ export const vehiclesAPI = {
 
 // Drivers APIs
 export const driversAPI = {
-  getAllDrivers: (page = 1, limit = 10) => apiClient.get(`/driver-details?page=${page}&limit=${limit}`),
+  getAllDrivers: (page = 1, limit = 10) => apiClient.get(`/users/all/drivers-with-details?page=${page}&limit=${limit}`),
   getDriverDetails: (driverId: string) => apiClient.get(`/driver-details/${driverId}`),
 }
 

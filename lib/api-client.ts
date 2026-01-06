@@ -1,4 +1,8 @@
-import axios, { type AxiosInstance, type AxiosError } from "axios"
+import axios, {
+  AxiosHeaders,
+  type AxiosInstance,
+  type AxiosError,
+} from "axios"
 import { getSession } from "next-auth/react"
 
 // Create axios instance with base configuration
@@ -16,6 +20,14 @@ apiClient.interceptors.request.use(
     console.log("DDDDDDDDDD", session)
     if (session?.accessToken) {
       config.headers.Authorization = `Bearer ${session.accessToken}`
+    }
+    if (config.data instanceof FormData) {
+      if (config.headers instanceof AxiosHeaders) {
+        config.headers.delete("Content-Type")
+      } else if (config.headers) {
+        delete (config.headers as Record<string, string>)["Content-Type"]
+        delete (config.headers as Record<string, string>)["content-type"]
+      }
     }
     return config
   },
