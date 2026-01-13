@@ -23,23 +23,20 @@ export default function AdminLayout({
 }>) {
   return (
     <html lang="en">
-      <body
-        className={`${geist.className} ${geistMono.className} font-sans antialiased`}
-      >
-        {/* Wrap everything with Session + React Query Providers */}
+      <body className={`${geist.className} ${geistMono.className} font-sans antialiased`}>
         <Providers>
           <div className="flex min-h-screen">
             <Sidebar />
-            <div className="flex-1 flex flex-col">
+            
+            {/* Added md:ml-72 to push content to the right of the fixed sidebar */}
+            <div className="flex-1 flex flex-col ml-5 transition-all duration-300">
               <Header />
-              <main className="flex-1 p-6">{children}</main>
+              <main className="flex-1 p-6 bg-[#F9F7F9]">{children}</main>
             </div>
           </div>
 
-          {/* Global UI */}
           <Toaster position="top-right" />
         </Providers>
-
         <Analytics />
       </body>
     </html>
