@@ -8,6 +8,8 @@ export const authAPI = {
   resetPassword: (email: string, newPassword: string) => apiClient.post("/auth/reset-password", { email, newPassword }),
 }
 
+
+
 // Bookings APIs
 export const bookingsAPI = {
   getAllBookings: (page = 1, limit = 10) => apiClient.get(`/schedule-booking/all-booking?page=${page}&limit=${limit}`),

@@ -1,9 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { signOut } from "next-auth/react";
+import { signOut, useSession } from "next-auth/react";
 import {
   LayoutDashboard,
   Users,
@@ -16,15 +16,6 @@ import {
   UserCircle,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
 import Image from "next/image";
 
@@ -34,74 +25,147 @@ const menuItems = [
   { label: "Vehicle List", icon: Car, href: "/dashboard/vehicles" },
   { label: "Driver List", icon: UserCircle, href: "/dashboard/drivers" },
   { label: "Routes", icon: Route, href: "/dashboard/routes" },
-  { label: "Parents List", icon: Users, href: "/dashboard/parents" },
+  { label: "Passenger List", icon: Users, href: "/dashboard/passengers" },
   { label: "Payment History", icon: CreditCard, href: "/dashboard/payments" },
 ];
+
+type ApiUser = {
+  _id: string;
+  name: string;
+  email: string;
+  username: string;
+  role: string;
+  avatar?: { url?: string; public_id?: string };
+};
+
+type UserResponse = {
+  success: boolean;
+  message: string;
+  data: ApiUser;
+};
 
 export function Sidebar() {
   const [isOpen, setIsOpen] = useState(false);
   const pathname = usePathname();
 
+  const { data: sessionData, status } = useSession();
+  const userId = sessionData?.user?.id;
+
+  const [user, setUser] = useState<ApiUser | null>(null);
+  const [isUserLoading, setIsUserLoading] = useState(false);
+
+  const avatarSrc = useMemo(() => {
+    const url = user?.avatar?.url?.trim();
+    return url;
+  }, [user]);
+
+  useEffect(() => {
+    if (status !== "authenticated" || !userId) return;
+
+    let isMounted = true;
+
+    async function loadUser() {
+      setIsUserLoading(true);
+      try {
+        // ✅ IMPORTANT: call NEXT proxy route (same-origin)
+        const res = await fetch(
+          `${process.env.NEXT_PUBLIC_BASE_URL}/users/users/${userId}`,
+          {
+            method: "GET",
+            cache: "no-store",
+          }
+        );
+
+        if (!res.ok) {
+          throw new Error(`Failed to fetch user (HTTP ${res.status})`);
+        }
+
+        const json = (await res.json()) as UserResponse;
+
+        if (!json?.success || !json?.data) {
+          throw new Error(json?.message || "Invalid user response");
+        }
+
+        if (isMounted) setUser(json.data);
+      } catch (err) {
+        toast.error(
+          err instanceof Error ? err.message : "Failed to fetch user"
+        );
+      } finally {
+        if (isMounted) setIsUserLoading(false);
+      }
+    }
+
+    loadUser();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [status, userId]);
+
   const handleLogout = async () => {
     try {
       await signOut({ redirect: true, callbackUrl: "/auth/login" });
       toast.success("Logged out successfully");
-    } catch (error) {
+    } catch {
       toast.error("Failed to logout");
     }
   };
 
   return (
     <>
-      {/* Mobile Toggle Button - Styled better for visibility */}
       <Button
         variant="outline"
         size="icon"
-        className="fixed top-4 left-4 z-50 md:hidden bg-white shadow-sm"
+        className="fixed top-4 left-4 z-50 md:hidden bg-white"
         onClick={() => setIsOpen(!isOpen)}
-        aria-label="Toggle Menu"
       >
         {isOpen ? <X size={20} /> : <Menu size={20} />}
       </Button>
 
-      {/* Sidebar Container */}
       <aside
-        className={`fixed left-0 top-0 h-screen w-64 bg-white border-r border-gray-200 flex flex-col transition-transform duration-300 ease-in-out z-40 md:translate-x-0 ${
+        className={`fixed left-0 top-0 h-screen w-72 bg-[#F9F7F9] flex flex-col p-6 transition-transform duration-300 z-40 md:translate-x-0 ${
           isOpen ? "translate-x-0" : "-translate-x-full"
         }`}
       >
-        {/* Header/Logo Section */}
-        <div className="h-24 flex items-center justify-center border-b px-6 shrink-0">
-          <Link href="/dashboard" className="relative w-full h-16">
+        {/* Logo */}
+        <div className="mb-8 flex justify-center">
+          <div className="relative w-40 h-20">
             <Image
               src="/logo.png"
-              alt="Logo"
+              alt="BBPOOL"
               fill
-              priority
               className="object-contain"
+              priority
             />
-          </Link>
+          </div>
         </div>
 
-        {/* Navigation - Uses flex-grow to push logout to bottom */}
-        <nav className="flex-1 overflow-y-auto py-6 px-4 custom-scrollbar">
-          <ul className="space-y-1">
+        {/* Nav */}
+        <nav className="bg-white rounded-[32px] p-4 shadow-sm flex-1 overflow-y-auto">
+          <ul className="space-y-2">
             {menuItems.map((item) => {
               const isActive = pathname === item.href;
               const Icon = item.icon;
+
               return (
                 <li key={item.href}>
                   <Link
                     href={item.href}
-                    className={`group flex items-center gap-3 px-3 py-2.5 rounded-md transition-all duration-200 ${
+                    className={`flex items-center gap-3 px-4 py-3 rounded-2xl transition-all ${
                       isActive
-                        ? "bg-blue-600 text-white shadow-md shadow-blue-100"
-                        : "text-gray-600 hover:bg-gray-100 hover:text-gray-900"
+                        ? "bg-[#F0F2FF] text-[#8E97FD]"
+                        : "text-[#4A4A4A] hover:bg-gray-50"
                     }`}
                     onClick={() => setIsOpen(false)}
                   >
-                    <Icon size={18} className={isActive ? "text-white" : "text-gray-400 group-hover:text-gray-600"} />
-                    <span className="text-sm font-medium">{item.label}</span>
+                    <Icon
+                      size={22}
+                      className={isActive ? "text-[#8E97FD]" : "text-[#A1A1A1]"}
+                    />
+                    <span className="text-[15px] font-semibold">
+                      {item.label}
+                    </span>
                   </Link>
                 </li>
               );
@@ -109,43 +173,44 @@ export function Sidebar() {
           </ul>
         </nav>
 
-        {/* Footer/Logout Section */}
-        <div className="p-4 border-t bg-gray-50/50">
-          <AlertDialog>
-            <AlertDialogTrigger asChild>
-              <Button
-                variant="ghost"
-                className="w-full justify-start gap-3 text-red-600 hover:text-red-700 hover:bg-red-50 transition-colors"
-              >
-                <LogOut size={18} />
-                <span className="font-medium text-sm">Logout</span>
-              </Button>
-            </AlertDialogTrigger>
-            <AlertDialogContent>
-              <div className="space-y-2">
-                <AlertDialogTitle>Confirm Logout</AlertDialogTitle>
-                <AlertDialogDescription>
-                  Are you sure you want to end your session?
-                </AlertDialogDescription>
-              </div>
-              <div className="flex gap-3 justify-end mt-4">
-                <AlertDialogCancel className="mt-0">Cancel</AlertDialogCancel>
-                <AlertDialogAction
-                  onClick={handleLogout}
-                  className="bg-red-600 hover:bg-red-700 focus:ring-red-600"
-                >
-                  Logout
-                </AlertDialogAction>
-              </div>
-            </AlertDialogContent>
-          </AlertDialog>
+        {/* User + Logout */}
+        <div className="mt-6 space-y-3">
+          <div className="flex items-center gap-3 bg-[#EEF0FF] py-2 px-4 rounded-full justify-center">
+            <div className="w-8 h-8 rounded-full bg-gray-300 overflow-hidden relative">
+              {avatarSrc ? (
+                <Image
+                  src={avatarSrc}
+                  alt="User"
+                  fill
+                  className="object-cover"
+                  sizes="32px"
+                />
+              ) : (
+                <div className="w-full h-full" />
+              )}
+            </div>
+
+            <span className="text-[#4A4A4A] font-semibold text-sm">
+              {isUserLoading
+                ? "Loading..."
+                : user?.name || sessionData?.user?.name || "Unknown"}
+            </span>
+          </div>
+
+          <Button
+            onClick={handleLogout}
+            variant="outline"
+            className="w-full rounded-full border-2 border-[#FF7E7E] text-[#FF7E7E] hover:bg-[#FF7E7E] hover:text-white h-12 text-md font-bold transition-all"
+          >
+            <LogOut size={18} className="mr-2" />
+            Logout
+          </Button>
         </div>
       </aside>
 
-      {/* Mobile Backdrop - Smooth fade */}
       {isOpen && (
         <div
-          className="fixed inset-0 bg-black/40 backdrop-blur-sm z-30 md:hidden transition-opacity"
+          className="fixed inset-0 bg-black/20 backdrop-blur-sm z-30 md:hidden"
           onClick={() => setIsOpen(false)}
         />
       )}
